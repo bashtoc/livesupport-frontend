@@ -8,7 +8,7 @@ const optionalPassword = z.preprocess((value) => value === "" ? undefined : valu
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
-  TRUST_PROXY: z.string().default("loopback"),
+  TRUST_PROXY: z.string().default("loopback,linklocal,uniquelocal"),
   APP_ORIGIN: z.string().url(),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().url(),
