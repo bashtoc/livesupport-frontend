@@ -38,6 +38,6 @@ for _ in $(seq 1 30); do
   fi
   sleep 2
 done
-docker compose logs api --tail=100
+docker compose logs api api-secondary gateway --tail=100
 exit 1
 REMOTE

@@ -14,6 +14,9 @@ import { healthRouter } from "./modules/health/routes.js";
 import { identityRouter } from "./modules/identity/routes.js";
 import { savedReplyRouter } from "./modules/saved-replies/routes.js";
 import { staffRouter } from "./modules/staff/routes.js";
+import { notificationRouter } from "./modules/notifications/routes.js";
+import { publicKnowledgeRouter, staffKnowledgeRouter } from "./modules/knowledge/routes.js";
+import { operationsRouter } from "./modules/operations/routes.js";
 
 export function createApp() {
   const app = express();
@@ -42,6 +45,10 @@ export function createApp() {
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1", conversationRouter);
   app.use("/api/v1", attachmentRouter);
+  app.use("/api/v1/notifications", notificationRouter);
+  app.use("/api/v1/knowledge", publicKnowledgeRouter);
+  app.use("/api/v1/staff/knowledge", staffKnowledgeRouter);
+  app.use("/api/v1/staff/operations", operationsRouter);
   app.use("/api/v1/staff", staffRouter);
   app.use("/api/v1/staff/saved-replies", savedReplyRouter);
   app.use(notFound);

@@ -33,6 +33,11 @@ export function serializeConversation(row: Record<string, unknown>) {
     version: Number(row.version),
     assignedStaffId: row.assigned_staff_id,
     assigneeName: row.assignee_name,
+    firstResponseDueAt: row.first_response_due_at,
+    resolutionDueAt: row.resolution_due_at,
+    firstResponseAt: row.first_response_at,
+    slaBreachedAt: row.sla_breached_at,
+    reopenedCount: Number(row.reopened_count ?? 0),
     lastMessageAt: row.last_message_at,
     createdAt: row.created_at,
     customer: row.external_uid

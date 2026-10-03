@@ -4,9 +4,12 @@ The backend is an independent Node.js service for the Safer Support inbox. It pe
 
 Staff onboarding uses a durable PostgreSQL email outbox and Cloudflare Email Sending. The API generates initial passwords server-side, encrypts queued credential payloads, and never returns the password to the dashboard.
 
+See [docs/OPERATIONS.md](docs/OPERATIONS.md) for delivery receipts, push notifications, masking, SLA routing, CSAT, knowledge articles, reporting, metrics, and API redundancy.
+
 ## Services
 
-- `api`: Express REST API and Socket.IO gateway on port 3000.
+- `api` and `api-secondary`: redundant Express and Socket.IO instances.
+- `gateway`: internal Nginx load balancer published on loopback port 3000.
 - `worker`: attachment scanning and notification jobs.
 - `postgres`: durable customers, conversations, messages, sessions, and audit events.
 - `redis`: Socket.IO fan-out and BullMQ queues.

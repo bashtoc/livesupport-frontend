@@ -8,6 +8,7 @@ export type Message = {
   time: string;
   createdAt: string;
   attachmentIds: string[];
+  receipt?: { deliveredAt?: string | null; readAt?: string | null } | null;
 };
 
 export type Conversation = {
@@ -31,6 +32,11 @@ export type Conversation = {
   tags: string[];
   unread: number;
   messages: Message[];
+  firstResponseDueAt?: string | null;
+  resolutionDueAt?: string | null;
+  firstResponseAt?: string | null;
+  slaBreachedAt?: string | null;
+  reopenedCount: number;
 };
 
 export type Staff = {
@@ -44,6 +50,13 @@ export type Staff = {
 };
 
 export type SavedReply = { id: string; title: string; text: string };
+export type KnowledgeArticle = { id: string; title: string; summary: string; body: string; category: string; isPublished: boolean; updatedAt: string };
+export type ReportOverview = {
+  summary: { total: number; open: number; resolved: number; unassigned: number; sla_breached: number; avg_first_response_minutes: number; avg_resolution_minutes: number; csat: string; feedback_count: number };
+  queueAge: { average_minutes: number; oldest_minutes: number };
+  agents: Array<{ id: string; display_name: string; availability_status: string; assigned: number; resolved: number; csat: string }>;
+  daily: Array<{ day: string; created: number; resolved: number }>;
+};
 
 export const avatarUrl = (value: string) =>
   /^https:\/\//i.test(value) ? value : "";

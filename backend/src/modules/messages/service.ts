@@ -6,6 +6,8 @@ import type { AuthPrincipal } from "../auth/types.js";
 import { audit } from "../audit/service.js";
 import { requireConversationAccess } from "../conversations/access.js";
 import { publishConversationEvent } from "../realtime/socket.js";
+import { maskFinancialIdentifiers } from "../security/masking.js";
+import { notificationQueue } from "../notifications/queue.js";
 
 export function serializeMessage(row: Record<string, unknown>) {
   return {
@@ -16,6 +18,7 @@ export function serializeMessage(row: Record<string, unknown>) {
     kind: row.kind,
     body: row.body,
     metadata: row.metadata,
+    receipt: row.receipt ?? null,
     senderCustomerId: row.sender_customer_id,
     senderStaffId: row.sender_staff_id,
     createdAt: row.created_at
@@ -40,6 +43,7 @@ export async function insertMessage(
     [input.conversationId, input.clientMessageId]
   );
   if (existing.rows[0]) return { message: existing.rows[0], created: false };
+  const masked = maskFinancialIdentifiers(input.body);
   const result = await client.query(
     `insert into messages
       (conversation_id, client_message_id, kind, sender_customer_id, sender_staff_id, body, metadata)
@@ -51,8 +55,8 @@ export async function insertMessage(
       input.kind,
       senderCustomerId,
       senderStaffId,
-      input.body,
-      { attachmentIds: input.attachmentIds ?? [] }
+      masked.text,
+      { attachmentIds: input.attachmentIds ?? [], financialDataMasked: masked.masked }
     ]
   );
   const message = result.rows[0];
@@ -71,10 +75,14 @@ export async function insertMessage(
   await client.query(
     `update conversations
         set last_message_at = now(),
+            last_customer_message_at = case when $2 = 'customer' then now() else last_customer_message_at end,
+            last_agent_message_at = case when $2 = 'agent' then now() else last_agent_message_at end,
+            first_response_at = case when $2 = 'agent' then coalesce(first_response_at, now()) else first_response_at end,
+            reopened_count = case when status = 'resolved' then reopened_count + 1 else reopened_count end,
             status = case when status = 'resolved' then 'open' else status end,
             version = version + 1
       where id = $1`,
-    [input.conversationId]
+    [input.conversationId, input.kind]
   );
   return { message, created: true };
 }
@@ -120,6 +128,11 @@ export async function sendMessage(input: {
       message,
       kind === "private_note" ? "staff" : "all"
     );
+    if (kind === "agent") {
+      await notificationQueue.add("agent-reply", {
+        messageId: String(message.id), conversationId: input.conversationId
+      }, { jobId: `agent-reply-${String(message.id)}` });
+    }
   }
   return { message, deduplicated: !result.created };
 }
@@ -132,11 +145,16 @@ export async function listMessages(
 ) {
   await requireConversationAccess(conversationId, auth);
   const visibilityClause = auth.type === "customer" ? "and kind <> 'private_note'" : "";
+  const receiptType = auth.type === "staff" ? "customer" : "staff";
   const result = await db.query(
-    `select * from messages
-      where conversation_id = $1 and sequence > $2 and deleted_at is null ${visibilityClause}
-      order by sequence asc limit $3`,
-    [conversationId, after, limit]
+    `select m.*,
+            (select json_build_object('deliveredAt', mr.delivered_at, 'readAt', mr.read_at)
+               from message_receipts mr where mr.message_id = m.id and mr.recipient_type = $4
+               order by mr.read_at desc nulls last, mr.delivered_at desc nulls last limit 1) as receipt
+       from messages m
+      where m.conversation_id = $1 and m.sequence > $2 and m.deleted_at is null ${visibilityClause}
+      order by m.sequence asc limit $3`,
+    [conversationId, after, limit, receiptType]
   );
   return result.rows.map(serializeMessage);
 }

@@ -9,6 +9,9 @@ import type { CustomerPrincipal, StaffPrincipal } from "../auth/types.js";
 import { insertMessage, listMessages, sendMessage } from "../messages/service.js";
 import { publishConversationEvent } from "../realtime/socket.js";
 import { requireConversationAccess, serializeConversation } from "./access.js";
+import { recordReceipt } from "../receipts/service.js";
+import { assignConversation } from "../routing/service.js";
+import { initializeSla } from "../sla/service.js";
 
 const uuid = z.string().uuid();
 const listQuery = z.object({
@@ -48,6 +51,18 @@ conversationRouter.post("/conversations/:id/messages", async (req, res) => {
   res.status(result.deduplicated ? 200 : 201).json(result);
 });
 
+const receiptSchema = z.object({
+  messageIds: z.array(uuid).min(1).max(100),
+  state: z.enum(["delivered", "read"])
+});
+
+conversationRouter.post("/conversations/:id/receipts", async (req, res) => {
+  const conversationId = uuid.parse(req.params.id);
+  const input = receiptSchema.parse(req.body);
+  const receipts = await recordReceipt({ conversationId, ...input, auth: req.auth! });
+  res.json({ receipts });
+});
+
 const createConversationSchema = z.object({
   subject: z.string().trim().min(2).max(160),
   initialMessage: z.object({
@@ -76,6 +91,8 @@ conversationRouter.post("/customer/conversations", requireType("customer"), asyn
       [customer.id, input.subject]
     );
     const conversation = created.rows[0];
+    await initializeSla(client, conversation.id, conversation.team);
+    await assignConversation(client, conversation.id, conversation.team);
     const message = input.initialMessage
       ? await insertMessage(client, {
           conversationId: conversation.id,
@@ -93,7 +110,12 @@ conversationRouter.post("/customer/conversations", requireType("customer"), asyn
       requestId: String(req.id),
       ip: req.ip
     }, client);
-    return { conversation, message: message?.message ?? null };
+    const hydrated = await client.query(
+      `select c.*, su.display_name as assignee_name from conversations c
+       left join staff_users su on su.id = c.assigned_staff_id where c.id = $1`,
+      [conversation.id]
+    );
+    return { conversation: hydrated.rows[0], message: message?.message ?? null };
   });
   publishConversationEvent(result.conversation.id, result.conversation.team, "conversation:created", {
     conversation: serializeConversation(result.conversation)
@@ -113,7 +135,7 @@ conversationRouter.get("/staff/conversations", requireType("staff"), async (req,
   const staff = req.auth as StaffPrincipal;
   const query = staffListSchema.parse(req.query);
   const conditions = ["c.team = $1"];
-  const values: unknown[] = [staff.team];
+  const values: unknown[] = [staff.team, staff.id];
   if (query.view === "unassigned") conditions.push("c.assigned_staff_id is null");
   if (query.view === "mine") {
     values.push(staff.id);
@@ -135,6 +157,10 @@ conversationRouter.get("/staff/conversations", requireType("staff"), async (req,
   const result = await db.query(
     `select c.*, cu.external_uid, cu.verified_name, cu.email, cu.avatar_url,
             su.display_name as assignee_name,
+            (select count(*)::int from messages um
+              where um.conversation_id = c.id and um.kind = 'customer'
+                and not exists (select 1 from message_receipts ur where ur.message_id = um.id
+                  and ur.recipient_type = 'staff' and ur.recipient_id = $2 and ur.read_at is not null)) as unread_count,
             (select body from messages m where m.conversation_id = c.id and m.kind <> 'private_note'
               order by sequence desc limit 1) as preview
        from conversations c join customers cu on cu.id = c.customer_id
@@ -144,7 +170,7 @@ conversationRouter.get("/staff/conversations", requireType("staff"), async (req,
     values
   );
   res.json({
-    data: result.rows.map((row) => ({ ...serializeConversation(row), preview: row.preview })),
+    data: result.rows.map((row) => ({ ...serializeConversation(row), preview: row.preview, unreadCount: Number(row.unread_count ?? 0) })),
     nextCursor: result.rows.at(-1)?.last_message_at ?? null
   });
 });
@@ -217,7 +243,45 @@ conversationRouter.patch("/staff/conversations/:id", requireType("staff"), async
   });
   const serialized = serializeConversation(updated);
   publishConversationEvent(conversationId, current.team, "conversation:updated", serialized);
+  if (input.status === "resolved") {
+    publishConversationEvent(conversationId, current.team, "conversation:feedback-requested", { conversationId });
+  }
   res.json({ conversation: serialized });
+});
+
+const feedbackSchema = z.object({ rating: z.number().int().min(1).max(5), comment: z.string().trim().max(2000).optional() });
+conversationRouter.put("/customer/conversations/:id/feedback", requireType("customer"), async (req, res) => {
+  const customer = req.auth as CustomerPrincipal;
+  const conversationId = uuid.parse(req.params.id);
+  const input = feedbackSchema.parse(req.body);
+  const conversation = await requireConversationAccess(conversationId, customer);
+  if (conversation.status !== "resolved") throw new AppError(409, "conversation_not_resolved", "Feedback is available after resolution");
+  const result = await db.query(
+    `insert into conversation_feedback(conversation_id, customer_id, rating, comment)
+     values ($1, $2, $3, $4)
+     on conflict (conversation_id) do update set rating = excluded.rating, comment = excluded.comment, updated_at = now()
+     returning id, conversation_id, rating, comment, updated_at`,
+    [conversationId, customer.id, input.rating, input.comment ?? null]
+  );
+  publishConversationEvent(conversationId, conversation.team, "conversation:feedback", result.rows[0], "staff");
+  res.json({ feedback: result.rows[0] });
+});
+
+conversationRouter.get("/staff/conversations/:id/assignment-history", requireType("staff"), async (req, res) => {
+  const conversationId = uuid.parse(req.params.id);
+  await requireConversationAccess(conversationId, req.auth!);
+  const result = await db.query(
+    `select ah.id, ah.reason, ah.created_at,
+            previous.display_name as previous_name, next.display_name as new_name,
+            actor.display_name as changed_by_name
+       from assignment_history ah
+       left join staff_users previous on previous.id = ah.previous_staff_id
+       left join staff_users next on next.id = ah.new_staff_id
+       left join staff_users actor on actor.id = ah.changed_by_staff_id
+      where ah.conversation_id = $1 order by ah.created_at desc`,
+    [conversationId]
+  );
+  res.json({ data: result.rows });
 });
 
 conversationRouter.get(

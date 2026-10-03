@@ -63,6 +63,25 @@ export async function startRealtime(httpServer: HttpServer): Promise<Server> {
     socket.on("conversation:leave", async (conversationId: unknown) => {
       if (typeof conversationId === "string") await socket.leave(`conversation:${conversationId}`);
     });
+    socket.on("message:receipt", async (payload: unknown, acknowledge?: (result: unknown) => void) => {
+      try {
+        if (!payload || typeof payload !== "object") throw new Error("Invalid receipt");
+        const value = payload as { conversationId?: unknown; messageIds?: unknown; state?: unknown };
+        if (typeof value.conversationId !== "string" || !Array.isArray(value.messageIds) ||
+            !value.messageIds.every((id) => typeof id === "string") ||
+            (value.state !== "delivered" && value.state !== "read")) throw new Error("Invalid receipt");
+        const { recordReceipt } = await import("../receipts/service.js");
+        const receipts = await recordReceipt({
+          conversationId: value.conversationId,
+          messageIds: value.messageIds,
+          state: value.state,
+          auth
+        });
+        acknowledge?.({ ok: true, receipts });
+      } catch {
+        acknowledge?.({ ok: false, error: "invalid_receipt" });
+      }
+    });
     socket.on("disconnect", (reason) => {
       logger.info(
         { socketId: socket.id, principalType: auth.type, principalId: auth.id, reason },

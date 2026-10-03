@@ -32,6 +32,12 @@ const schema = z.object({
   MAX_ATTACHMENT_BYTES: z.coerce.number().int().min(1024).max(25_000_000).default(10_485_760),
   CLAMAV_HOST: z.string().default("clamav"),
   CLAMAV_PORT: z.coerce.number().int().positive().default(3310),
+  APNS_TEAM_ID: optionalString,
+  APNS_KEY_ID: optionalString,
+  APNS_BUNDLE_ID: optionalString,
+  APNS_PRIVATE_KEY: optionalString,
+  FCM_SERVICE_ACCOUNT_JSON: optionalString,
+  METRICS_TOKEN: optionalString,
   LOG_LEVEL: z.string().default("info"),
   BOOTSTRAP_ADMIN_EMAIL: optionalEmail,
   BOOTSTRAP_ADMIN_PASSWORD: optionalPassword
@@ -47,6 +53,7 @@ export function env(): Env {
     if (input.PRIMARY_APP_PUBLIC_KEY) {
       input.PRIMARY_APP_PUBLIC_KEY = input.PRIMARY_APP_PUBLIC_KEY.replaceAll("\\n", "\n");
     }
+    if (input.APNS_PRIVATE_KEY) input.APNS_PRIVATE_KEY = input.APNS_PRIVATE_KEY.replaceAll("\\n", "\n");
     cached = schema.parse(input);
   }
   return cached;
