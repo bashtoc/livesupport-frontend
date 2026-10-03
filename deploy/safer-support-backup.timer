@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Safer Support database backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Africa/Lagos
+RandomizedDelaySec=30m
+Persistent=true
+Unit=safer-support-backup.service
+
+[Install]
+WantedBy=timers.target

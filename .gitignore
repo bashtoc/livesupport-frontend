@@ -1,0 +1,34 @@
+node_modules/
+dist/
+coverage/
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+credentials*.json
+secrets*.json
+
+# Logs and runtime data
+*.log
+logs/
+*.pid
+*.pid.lock
+tmp/
+temp/
+
+# Local tooling and editor state
+.idea/
+.vscode/
+.cache/
+.vite/
+.DS_Store
+._*
+
+*.tsbuildinfo

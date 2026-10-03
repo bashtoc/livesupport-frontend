@@ -1,0 +1,13 @@
+[Unit]
+Description=Encrypted Safer Support PostgreSQL backup to Cloudflare R2
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/root/.config/safer-support-backup.env
+ExecStart=/usr/local/sbin/safer-support-backup
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

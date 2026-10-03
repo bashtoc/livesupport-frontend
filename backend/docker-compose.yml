@@ -1,0 +1,93 @@
+name: safer-support
+
+x-app: &app
+  build: .
+  restart: unless-stopped
+  env_file: .env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  networks: [support-private]
+  security_opt: [no-new-privileges:true]
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m
+
+services:
+  api:
+    <<: *app
+    command: ["node", "dist/src/server.js"]
+    ports:
+      - "${API_BIND_ADDRESS:-127.0.0.1}:${API_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health/live').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    <<: *app
+    command: ["node", "dist/src/worker.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16.6-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: safer_support
+      POSTGRES_USER: safer_support
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [support-private]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safer_support -d safer_support"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt: [no-new-privileges:true]
+
+  redis:
+    image: redis:7.4.2-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis-data:/data
+    networks: [support-private]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    security_opt: [no-new-privileges:true]
+
+  clamav:
+    image: clamav/clamav:1.4_base
+    restart: unless-stopped
+    volumes:
+      - clamav-data:/var/lib/clamav
+    networks: [support-private]
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'PING\n' | nc 127.0.0.1 3310 | grep -q PONG"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    security_opt: [no-new-privileges:true]
+
+networks:
+  support-private:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  clamav-data:

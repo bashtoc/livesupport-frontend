@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd /opt/safer-support
+docker compose exec -T postgres pg_dump -U safer_support -d safer_support -Fc \
+  | restic backup --stdin --stdin-filename safer_support.dump --tag postgres --host safer-support-vps
+restic forget --tag postgres --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
