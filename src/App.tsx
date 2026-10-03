@@ -165,10 +165,12 @@ export default function App() {
   const [creatingAgent, setCreatingAgent] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const joinedRef = useRef("");
+  const selectedIdRef = useRef("");
   const searchRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const selected = conversations.find((item) => item.id === selectedId);
+  selectedIdRef.current = selectedId;
   const me = useMemo(() => ({ name: session?.staff.name ?? "Staff", avatar: "", color: "#dbeafe" }), [session]);
 
   const notify = useCallback((message: string) => setToast(message), []);
@@ -182,7 +184,10 @@ export default function App() {
         api.staff(),
       ]);
       if (conversationResult.status === "rejected") throw conversationResult.reason;
-      setConversations(conversationResult.value);
+      setConversations((current) => conversationResult.value.map((next) => {
+        const existing = current.find((item) => item.id === next.id);
+        return existing ? { ...next, messages: existing.messages } : next;
+      }));
       setSelectedId((current) => current && conversationResult.value.some((item) => item.id === current) ? current : conversationResult.value[0]?.id ?? "");
       setReplies(replyResult.status === "fulfilled" ? replyResult.value : []);
       setStaff(staffResult.status === "fulfilled" ? staffResult.value : session ? [session.staff] : []);
@@ -209,8 +214,9 @@ export default function App() {
 
   useEffect(() => {
     if (!session) return;
-    const socket = io({ path: "/socket.io", auth: { token: api.accessToken() } });
-    socketRef.current = socket;
+    let disposed = false;
+    let socket: Socket | null = null;
+    let refreshingSocketToken = false;
     const reload = () => void loadWorkspace();
     const onMessage = (raw: RawMessage) => {
       const message = mapMessage(raw);
@@ -220,22 +226,87 @@ export default function App() {
       }));
     };
     const onConversationUpdate = (raw: RawConversation) => setConversations((items) => items.map((item) => item.id === raw.id ? mapConversation(raw, item) : item));
-    socket.on("conversation:created", reload);
-    socket.on("message:created", onMessage);
-    socket.on("message:private-note", onMessage);
-    socket.on("conversation:updated", onConversationUpdate);
-    socket.on("connect_error", () => notify("Realtime connection interrupted. Reconnecting…"));
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
+    const joinSelected = () => {
+      const conversationId = selectedIdRef.current;
+      if (!socket?.connected || !conversationId) return;
+      if (joinedRef.current && joinedRef.current !== conversationId) {
+        socket.emit("conversation:leave", joinedRef.current);
+      }
+      socket.emit("conversation:join", conversationId, (result: { ok?: boolean }) => {
+        if (!result?.ok || disposed || selectedIdRef.current !== conversationId) return;
+        joinedRef.current = conversationId;
+        void loadMessages(conversationId);
+      });
     };
-  }, [session, loadWorkspace, notify]);
+    const start = async () => {
+      try {
+        const token = await api.realtimeAccessToken();
+        if (disposed) return;
+        socket = io({
+          path: "/socket.io",
+          auth: { token },
+          autoConnect: false,
+          reconnection: true,
+        });
+        socketRef.current = socket;
+        socket.on("connect", () => {
+          refreshingSocketToken = false;
+          joinedRef.current = "";
+          joinSelected();
+        });
+        socket.on("disconnect", () => {
+          joinedRef.current = "";
+        });
+        socket.on("conversation:created", reload);
+        socket.on("message:created", onMessage);
+        socket.on("message:private-note", onMessage);
+        socket.on("conversation:updated", onConversationUpdate);
+        socket.on("connect_error", async (error) => {
+          if (disposed || refreshingSocketToken) return;
+          if (error.message === "unauthorized") {
+            refreshingSocketToken = true;
+            try {
+              const refreshedToken = await api.realtimeAccessToken(true);
+              if (disposed || !socket) return;
+              socket.auth = { token: refreshedToken };
+              socket.connect();
+            } catch (refreshError) {
+              if (!disposed) notify(errorMessage(refreshError));
+            } finally {
+              refreshingSocketToken = false;
+            }
+            return;
+          }
+          notify("Realtime connection interrupted. Reconnecting…");
+        });
+        socket.connect();
+      } catch (error) {
+        if (!disposed) notify(errorMessage(error));
+      }
+    };
+    void start();
+    return () => {
+      disposed = true;
+      socket?.removeAllListeners();
+      socket?.disconnect();
+      if (socketRef.current === socket) socketRef.current = null;
+      joinedRef.current = "";
+    };
+  }, [session, loadWorkspace, loadMessages, notify]);
 
   useEffect(() => {
-    if (!selectedId || !socketRef.current) return;
-    if (joinedRef.current) socketRef.current.emit("conversation:leave", joinedRef.current);
-    joinedRef.current = selectedId;
-    socketRef.current.emit("conversation:join", selectedId);
+    if (!selectedId) return;
+    const socket = socketRef.current;
+    if (socket?.connected) {
+      if (joinedRef.current && joinedRef.current !== selectedId) {
+        socket.emit("conversation:leave", joinedRef.current);
+      }
+      socket.emit("conversation:join", selectedId, (result: { ok?: boolean }) => {
+        if (result?.ok && selectedIdRef.current === selectedId) {
+          joinedRef.current = selectedId;
+        }
+      });
+    }
     void loadMessages(selectedId);
   }, [selectedId, loadMessages]);
 

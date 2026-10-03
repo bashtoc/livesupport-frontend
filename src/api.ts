@@ -117,6 +117,19 @@ function loadSession(): StaffSession | null {
 let currentSession = loadSession();
 let refreshPromise: Promise<void> | null = null;
 
+function tokenExpiresSoon(token: string) {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return true;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const decoded = JSON.parse(atob(padded)) as { exp?: number };
+    return typeof decoded.exp !== 'number' || decoded.exp * 1000 <= Date.now() + 30_000;
+  } catch {
+    return true;
+  }
+}
+
 function saveSession(value: StaffSession | null) {
   currentSession = value;
   if (value) sessionStorage.setItem(SESSION_KEY, JSON.stringify(value));
@@ -170,6 +183,15 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
 export const api = {
   session: () => currentSession,
   accessToken: () => currentSession?.session.accessToken ?? "",
+  async realtimeAccessToken(forceRefresh = false) {
+    const token = currentSession?.session.accessToken;
+    if (!token) throw new ApiError(401, "signed_out", "Please sign in again");
+    if (forceRefresh || tokenExpiresSoon(token)) {
+      refreshPromise ??= refresh().finally(() => (refreshPromise = null));
+      await refreshPromise;
+    }
+    return currentSession?.session.accessToken ?? "";
+  },
   async login(email: string, password: string, otp?: string) {
     const response = await fetch(`${API_ROOT}/auth/staff/login`, {
       method: "POST",
