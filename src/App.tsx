@@ -9,15 +9,19 @@ import {
   Check,
   CheckCheck,
   ChevronDown,
-  ChevronRight,
   CircleCheck,
+  Eye,
+  EyeOff,
   Clock3,
   FileText,
+  Fingerprint,
   Inbox,
   Layers,
   List,
+  Lock,
   LockKeyhole,
   LogOut,
+  Mail,
   MessageCircle,
   Paperclip,
   PanelLeftClose,
@@ -25,6 +29,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Plus,
+  ScrollText,
   Search,
   ShieldCheck,
   UserPlus,
@@ -41,6 +46,14 @@ const pages = [
   { name: "Knowledge base", icon: BookOpen },
   { name: "Team", icon: Users },
 ];
+
+const pageSubtitles: Record<string, string> = {
+  Inbox: "Good conversations start here.",
+  Customers: "Verified customers from your primary app.",
+  Reports: "A current view of the support workload.",
+  "Knowledge base": "Your team’s shared saved replies.",
+  Team: "Manage access to your support workspace.",
+};
 
 function Avatar({ person, size = 38 }: { person: { name: string; avatar: string; color: string }; size?: number }) {
   const url = avatarUrl(person.avatar);
@@ -61,6 +74,7 @@ function Login({ onLogin }: { onLogin: (session: StaffSession) => void }) {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [needsOtp, setNeedsOtp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -80,22 +94,42 @@ function Login({ onLogin }: { onLogin: (session: StaffSession) => void }) {
 
   return (
     <main className="login-page">
-      <section className="login-card">
-        <div className="login-brand">
-          <span className="brand-icon"><img src="/safer-logo.png" alt="" /></span>
-          <span>safer<em>.</em><small>SUPPORT</small></span>
+      <section className="login-brand-panel">
+        <div className="login-topline">
+          <div className="login-brand"><img src="/safer-logo.png" alt="Safer Logo" /><strong>SAFER</strong></div>
+          <span className="login-status"><i />Staff only</span>
         </div>
-        <span className="login-shield"><ShieldCheck size={25} /></span>
-        <h1>Welcome back</h1>
-        <p>Sign in to your secure support workspace.</p>
-        <form onSubmit={submit}>
-          <label>Email address<input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="support@saference.com" /></label>
-          <label>Password<input type="password" autoComplete="current-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
-          {needsOtp && <label>Authenticator code<input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="000000" /></label>}
-          {error && <div className="login-error" role="alert">{error}</div>}
-          <button className="primary-button full-width" disabled={busy}>{busy ? "Signing in…" : "Sign in"}<ArrowRight size={16} /></button>
-        </form>
-        <div className="login-note"><LockKeyhole size={14} /> Staff access is protected by short-lived sessions and optional MFA.</div>
+        <div className="login-brand-copy">
+          <h1>Customer support,<span>under control.</span></h1>
+          <p>Authorized Safer support staff only. Conversations come from verified customers and update in real time.</p>
+        </div>
+        <div className="login-highlights">
+          <div><Fingerprint size={22} /><strong>Secure sessions</strong><span>Short-lived, MFA ready</span></div>
+          <div><ShieldCheck size={22} /><strong>Verified customers</strong><span>From the Safer app</span></div>
+          <div><ScrollText size={22} /><strong>Live inbox</strong><span>Real-time updates</span></div>
+        </div>
+      </section>
+      <section className="login-form-panel">
+        <div className="login-form-wrap">
+          <div className="login-brand login-mobile-brand"><img src="/safer-logo.png" alt="Safer Logo" /><strong>SAFER</strong></div>
+          <span className="login-eyebrow">Support console</span>
+          <h2>Sign in</h2>
+          <p>Use your Safer support credentials to continue.</p>
+          <form onSubmit={submit} className="login-form">
+            <label className="login-field">Email address
+              <div className="login-input"><Mail size={20} /><input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@saference.com" /></div>
+            </label>
+            <label className="login-field">Password
+              <div className="login-input"><Lock size={20} /><input type={showPassword ? "text" : "password"} autoComplete="current-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••••" /><button type="button" className="login-reveal" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button></div>
+            </label>
+            {needsOtp && <label className="login-field">Authenticator code
+              <div className="login-input"><ShieldCheck size={20} /><input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="000000" /></div>
+            </label>}
+            {error && <div className="login-error" role="alert">{error}</div>}
+            <button className="login-submit" disabled={busy}><span>{busy ? "Signing in…" : "Continue securely"}</span><i><ArrowRight size={20} /></i></button>
+          </form>
+          <div className="login-footer"><span>Need access? Ask an administrator.</span><span><ShieldCheck size={16} />Secure session</span></div>
+        </div>
       </section>
     </main>
   );
@@ -386,10 +420,9 @@ export default function App() {
       </aside>
       <main className="main-workspace">
         <header className="topbar">
-          <div className="topbar-leading"><div className="panel-controls"><button className="icon-button" aria-label="Toggle navigation" onClick={() => setNavOpen(!navOpen)}>{navOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}</button>{page === "Inbox" && <><button className="icon-button" aria-label="Toggle conversation list" onClick={() => setListOpen(!listOpen)}><List size={18} /></button><button className="icon-button" aria-label="Toggle customer details" onClick={() => setDetailOpen(!detailOpen)}>{detailOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}</button></>}</div><div className="breadcrumb">Workspace <ChevronRight size={13} /><span>{page}</span></div></div>
-          <div className="top-actions"><span className="live-label"><span className="online-dot" />Live</span><button className="global-search" onClick={() => { setPage("Inbox"); setListOpen(true); setTimeout(() => searchRef.current?.focus(), 0); }}><Search size={16} /><span>Search conversations</span><kbd>⌘ K</kbd></button><Avatar person={me} size={32} /></div>
+          <div className="topbar-leading"><div className="panel-controls"><button className="icon-button" aria-label="Toggle navigation" onClick={() => setNavOpen(!navOpen)}>{navOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}</button>{page === "Inbox" && <><button className="icon-button" aria-label="Toggle conversation list" onClick={() => setListOpen(!listOpen)}><List size={18} /></button><button className="icon-button" aria-label="Toggle customer details" onClick={() => setDetailOpen(!detailOpen)}>{detailOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}</button></>}</div><div className="page-title"><h1>{page}</h1><p>{pageSubtitles[page]}</p></div></div>
+          <div className="top-actions"><span className="live-label"><span className="online-dot" />Live</span><button className="global-search" onClick={() => { setPage("Inbox"); setListOpen(true); setTimeout(() => searchRef.current?.focus(), 0); }}><Search size={16} /><span>Search conversations</span><kbd>⌘ K</kbd></button>{page === "Knowledge base" && <button className="primary-button" onClick={() => setReplyForm(true)}><Plus size={16} />New saved reply</button>}<Avatar person={me} size={32} /></div>
         </header>
-        <div className="page-heading"><div><h1>{page}</h1><p>{page === "Inbox" ? "Good conversations start here." : page === "Customers" ? "Verified customers from your primary app." : page === "Reports" ? "A current view of the support workload." : page === "Team" ? "Manage access to your support workspace." : "Your team’s shared saved replies."}</p></div><div className="heading-actions"><span className="live-label"><span className="online-dot" />API connected</span>{page === "Knowledge base" && <button className="primary-button" onClick={() => setReplyForm(true)}><Plus size={16} />New saved reply</button>}</div></div>
         {page === "Inbox" ? (
           <div className="inbox-layout">
             <section id="conversation-sidebar" className={`conversation-panel ${listOpen ? "" : "panel-hidden"}`}>
