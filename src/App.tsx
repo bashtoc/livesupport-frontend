@@ -87,6 +87,25 @@ function Login({ onLogin }: { onLogin: (session: StaffSession) => void }) {
 
   return (
     <main className="login-page">
+      <svg className="login-pattern" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <pattern id="login-dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle className="login-pattern-dot" cx="2" cy="2" r="1.6" /></pattern>
+        </defs>
+        <rect x="1100" y="40" width="320" height="200" fill="url(#login-dots)" />
+        <rect x="560" y="640" width="240" height="220" fill="url(#login-dots)" />
+        <g className="login-pattern-rings">
+          <circle cx="120" cy="860" r="180" />
+          <circle cx="120" cy="860" r="260" />
+          <circle cx="120" cy="860" r="340" />
+          <circle cx="120" cy="860" r="420" />
+        </g>
+        <g className="login-pattern-strokes">
+          <path d="M-40 420 C 160 300, 300 520, 470 400 S 760 250, 900 380 S 1180 560, 1480 360" />
+          <path d="M-40 470 C 170 350, 310 570, 480 450 S 770 300, 910 430 S 1190 610, 1480 410" />
+          <path d="M620 900 C 700 760, 860 820, 940 700 S 1120 600, 1200 690 S 1340 820, 1480 640" />
+          <path d="M760 -20 C 800 80, 720 140, 800 220 S 980 260, 1000 160" />
+        </g>
+      </svg>
       <section className="login-panel">
         <div className="login-brand">
           <span className="brand-icon"><img src="/safer-logo.png" alt="" /></span>

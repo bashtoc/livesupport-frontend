@@ -3444,6 +3444,27 @@ td {
   color: #fff;
   background: #1d4ed8;
 }
+.login-page { position: relative; overflow: hidden; }
+.login-pattern {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.login-pattern-dot { fill: rgba(255, 255, 255, 0.22); }
+.login-pattern-rings circle,
+.login-pattern-strokes path {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.13);
+  stroke-width: 1.5;
+}
+.login-pattern-strokes path:nth-child(odd) { stroke: rgba(255, 255, 255, 0.2); }
+.login-panel,
+.login-showcase {
+  position: relative;
+  z-index: 1;
+}
 .login-panel {
   display: flex;
   flex-direction: column;
