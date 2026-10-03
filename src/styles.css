@@ -3437,7 +3437,7 @@ td {
 /* Login: flat, quiet split layout with a product preview. */
 .login-page {
   display: grid;
-  grid-template-columns: minmax(420px, 1fr) minmax(0, 1.15fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(420px, 1fr);
   place-items: stretch;
   min-height: 100dvh;
   padding: 0;
@@ -3533,6 +3533,7 @@ td {
   font-size: 12px;
 }
 .login-showcase {
+  order: -1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
