@@ -9,7 +9,6 @@ import {
   Check,
   CheckCheck,
   ChevronDown,
-  ChevronRight,
   CircleCheck,
   Clock3,
   FileText,
@@ -41,6 +40,14 @@ const pages = [
   { name: "Knowledge base", icon: BookOpen },
   { name: "Team", icon: Users },
 ];
+
+const pageSubtitles: Record<string, string> = {
+  Inbox: "Good conversations start here.",
+  Customers: "Verified customers from your primary app.",
+  Reports: "A current view of the support workload.",
+  "Knowledge base": "Your team’s shared saved replies.",
+  Team: "Manage access to your support workspace.",
+};
 
 function Avatar({ person, size = 38 }: { person: { name: string; avatar: string; color: string }; size?: number }) {
   const url = avatarUrl(person.avatar);
@@ -80,17 +87,31 @@ function Login({ onLogin }: { onLogin: (session: StaffSession) => void }) {
 
   return (
     <main className="login-page">
-      <section className="login-card">
+      <div className="login-aurora" aria-hidden="true"><span /><span /><span /></div>
+      <section className="login-hero">
         <div className="login-brand">
           <span className="brand-icon"><img src="/safer-logo.png" alt="" /></span>
           <span>safer<em>.</em><small>SUPPORT</small></span>
         </div>
-        <span className="login-shield"><ShieldCheck size={25} /></span>
+        <h2>Every customer conversation, <span>in one calm place.</span></h2>
+        <p>A secure, real-time workspace for your support team.</p>
+        <ul className="login-features">
+          <li><span><MessageCircle size={16} /></span>Live conversations that update instantly</li>
+          <li><span><ShieldCheck size={16} /></span>Verified customer identities from the Safer app</li>
+          <li><span><LockKeyhole size={16} /></span>Short-lived sessions with optional MFA</li>
+        </ul>
+      </section>
+      <section className="login-card">
+        <div className="login-brand login-brand-compact">
+          <span className="brand-icon"><img src="/safer-logo.png" alt="" /></span>
+          <span>safer<em>.</em><small>SUPPORT</small></span>
+        </div>
+        <span className="login-shield"><ShieldCheck size={24} /></span>
         <h1>Welcome back</h1>
         <p>Sign in to your secure support workspace.</p>
         <form onSubmit={submit}>
           <label>Email address<input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="support@saference.com" /></label>
-          <label>Password<input type="password" autoComplete="current-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+          <label>Password<input type="password" autoComplete="current-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••••••" /></label>
           {needsOtp && <label>Authenticator code<input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="000000" /></label>}
           {error && <div className="login-error" role="alert">{error}</div>}
           <button className="primary-button full-width" disabled={busy}>{busy ? "Signing in…" : "Sign in"}<ArrowRight size={16} /></button>
@@ -386,10 +407,9 @@ export default function App() {
       </aside>
       <main className="main-workspace">
         <header className="topbar">
-          <div className="topbar-leading"><div className="panel-controls"><button className="icon-button" aria-label="Toggle navigation" onClick={() => setNavOpen(!navOpen)}>{navOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}</button>{page === "Inbox" && <><button className="icon-button" aria-label="Toggle conversation list" onClick={() => setListOpen(!listOpen)}><List size={18} /></button><button className="icon-button" aria-label="Toggle customer details" onClick={() => setDetailOpen(!detailOpen)}>{detailOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}</button></>}</div><div className="breadcrumb">Workspace <ChevronRight size={13} /><span>{page}</span></div></div>
-          <div className="top-actions"><span className="live-label"><span className="online-dot" />Live</span><button className="global-search" onClick={() => { setPage("Inbox"); setListOpen(true); setTimeout(() => searchRef.current?.focus(), 0); }}><Search size={16} /><span>Search conversations</span><kbd>⌘ K</kbd></button><Avatar person={me} size={32} /></div>
+          <div className="topbar-leading"><div className="panel-controls"><button className="icon-button" aria-label="Toggle navigation" onClick={() => setNavOpen(!navOpen)}>{navOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}</button>{page === "Inbox" && <><button className="icon-button" aria-label="Toggle conversation list" onClick={() => setListOpen(!listOpen)}><List size={18} /></button><button className="icon-button" aria-label="Toggle customer details" onClick={() => setDetailOpen(!detailOpen)}>{detailOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}</button></>}</div><div className="page-title"><h1>{page}</h1><p>{pageSubtitles[page]}</p></div></div>
+          <div className="top-actions"><span className="live-label"><span className="online-dot" />Live</span><button className="global-search" onClick={() => { setPage("Inbox"); setListOpen(true); setTimeout(() => searchRef.current?.focus(), 0); }}><Search size={16} /><span>Search conversations</span><kbd>⌘ K</kbd></button>{page === "Knowledge base" && <button className="primary-button" onClick={() => setReplyForm(true)}><Plus size={16} />New saved reply</button>}<Avatar person={me} size={32} /></div>
         </header>
-        <div className="page-heading"><div><h1>{page}</h1><p>{page === "Inbox" ? "Good conversations start here." : page === "Customers" ? "Verified customers from your primary app." : page === "Reports" ? "A current view of the support workload." : page === "Team" ? "Manage access to your support workspace." : "Your team’s shared saved replies."}</p></div><div className="heading-actions"><span className="live-label"><span className="online-dot" />API connected</span>{page === "Knowledge base" && <button className="primary-button" onClick={() => setReplyForm(true)}><Plus size={16} />New saved reply</button>}</div></div>
         {page === "Inbox" ? (
           <div className="inbox-layout">
             <section id="conversation-sidebar" className={`conversation-panel ${listOpen ? "" : "panel-hidden"}`}>
