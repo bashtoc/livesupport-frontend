@@ -3441,33 +3441,37 @@ td {
   place-items: stretch;
   min-height: 100dvh;
   padding: 0;
-  color: #18181b;
-  background: #ffffff;
+  color: #fff;
+  background: #1d4ed8;
 }
 .login-panel {
   display: flex;
   flex-direction: column;
+  align-items: center;
   padding: 40px clamp(28px, 6vw, 88px);
 }
 .login-brand {
+  width: 100%;
+  max-width: 440px;
   margin-bottom: 0;
-  color: #18181b;
+  color: #fff;
   font-size: 26px;
 }
-.login-brand em { color: #2563eb; }
-.login-brand small { color: #52525b; }
+.login-brand em { color: #93c5fd; }
+.login-brand small { color: #dbeafe; }
 .login-brand .brand-icon {
   width: 36px;
   height: 36px;
 }
 .login-card {
   width: 100%;
-  max-width: 380px;
+  max-width: 440px;
   margin: auto 0;
-  padding: 48px 0;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
+  padding: 40px;
+  border-radius: 16px;
+  color: #18181b;
+  background: #fff;
+  box-shadow: 0 24px 48px -24px rgba(15, 23, 42, 0.45);
 }
 .login-card h1 {
   margin-bottom: 10px;
@@ -3528,8 +3532,10 @@ td {
   background: #fef2f2;
 }
 .login-note {
+  width: 100%;
+  max-width: 440px;
   margin-top: 0;
-  color: #71717a;
+  color: #bfdbfe;
   font-size: 12px;
 }
 .login-showcase {
@@ -3538,11 +3544,8 @@ td {
   flex-direction: column;
   justify-content: space-between;
   gap: 48px;
-  margin: 12px;
   padding: clamp(36px, 5vw, 72px);
-  border-radius: 20px;
   color: #fff;
-  background: #1d4ed8;
 }
 .login-showcase-copy span {
   display: block;
@@ -3560,7 +3563,6 @@ td {
 }
 .login-preview {
   width: min(440px, 100%);
-  align-self: flex-end;
   padding: 22px;
   border-radius: 14px;
   color: #18181b;
@@ -3609,7 +3611,8 @@ td {
 }
 @media (max-width: 600px) {
   .login-panel { padding: 28px 22px; }
-  .login-card { padding: 40px 0; }
+  .login-card { padding: 28px 22px; border-radius: 14px; }
+  .login-panel { gap: 28px; }
   .login-card h1 { font-size: 28px; }
 }
 
