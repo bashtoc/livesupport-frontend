@@ -10,13 +10,17 @@ import {
   CheckCheck,
   ChevronDown,
   CircleCheck,
+  Eye,
+  EyeOff,
   Clock3,
   FileText,
   Inbox,
+  KeyRound,
   Layers,
   List,
   LockKeyhole,
   LogOut,
+  Mail,
   MessageCircle,
   Paperclip,
   PanelLeftClose,
@@ -68,6 +72,7 @@ function Login({ onLogin }: { onLogin: (session: StaffSession) => void }) {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [needsOtp, setNeedsOtp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -87,55 +92,37 @@ function Login({ onLogin }: { onLogin: (session: StaffSession) => void }) {
 
   return (
     <main className="login-page">
-      <svg className="login-pattern" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs>
-          <pattern id="login-dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle className="login-pattern-dot" cx="2" cy="2" r="1.6" /></pattern>
-        </defs>
-        <rect x="1100" y="40" width="320" height="200" fill="url(#login-dots)" />
-        <rect x="560" y="640" width="240" height="220" fill="url(#login-dots)" />
-        <g className="login-pattern-rings">
-          <circle cx="120" cy="860" r="180" />
-          <circle cx="120" cy="860" r="260" />
-          <circle cx="120" cy="860" r="340" />
-          <circle cx="120" cy="860" r="420" />
-        </g>
-        <g className="login-pattern-strokes">
-          <path d="M-40 420 C 160 300, 300 520, 470 400 S 760 250, 900 380 S 1180 560, 1480 360" />
-          <path d="M-40 470 C 170 350, 310 570, 480 450 S 770 300, 910 430 S 1190 610, 1480 410" />
-          <path d="M620 900 C 700 760, 860 820, 940 700 S 1120 600, 1200 690 S 1340 820, 1480 640" />
-          <path d="M760 -20 C 800 80, 720 140, 800 220 S 980 260, 1000 160" />
-        </g>
-      </svg>
-      <section className="login-panel">
-        <div className="login-brand">
-          <span className="brand-icon"><img src="/safer-logo.png" alt="" /></span>
-          <span>safer<em>.</em><small>SUPPORT</small></span>
+      <section className="login-brand-panel">
+        <div className="login-brand"><img src="/safer-logo.png" alt="Safer Logo" /><strong>SAFER</strong></div>
+        <div className="login-brand-copy">
+          <span className="login-eyebrow light">Support workspace</span>
+          <h1>Customer conversations, handled securely.</h1>
+          <p>Authorized Safer support staff only. Conversations come from verified customers in the Safer app and update in real time.</p>
         </div>
-        <div className="login-card">
-          <h1>Sign in</h1>
-          <p>Use your Safer staff account to open the support workspace.</p>
-          <form onSubmit={submit}>
-            <label>Email address<input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@saference.com" /></label>
-            <label>Password<input type="password" autoComplete="current-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
-            {needsOtp && <label>Authenticator code<input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="000000" /></label>}
+        <div className="login-security-note"><ShieldCheck size={20} /><div><strong>Protected support access</strong><span>Short-lived sessions with optional MFA</span></div></div>
+      </section>
+      <section className="login-form-panel">
+        <div className="login-form-wrap">
+          <div className="login-brand login-mobile-brand"><img src="/safer-logo.png" alt="Safer Logo" /><strong>SAFER</strong></div>
+          <div className="login-icon"><img src="/safer-logo.png" alt="Safer Logo" /></div>
+          <span className="login-eyebrow">Support console</span>
+          <h2>Staff sign in</h2>
+          <p>Use your Safer support credentials to continue.</p>
+          <form onSubmit={submit} className="login-form">
+            <label className="login-field">Email address
+              <div className="login-input"><Mail size={17} /><input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@saference.com" /></div>
+            </label>
+            <label className="login-field">Password
+              <div className="login-input"><KeyRound size={17} /><input type={showPassword ? "text" : "password"} autoComplete="current-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" className="login-reveal" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div>
+            </label>
+            {needsOtp && <label className="login-field">Authenticator code
+              <div className="login-input"><ShieldCheck size={17} /><input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="000000" /></div>
+            </label>}
             {error && <div className="login-error" role="alert">{error}</div>}
-            <button className="primary-button full-width" disabled={busy}>{busy ? "Signing in…" : "Sign in"}<ArrowRight size={16} /></button>
+            <button className="login-submit" disabled={busy}>{busy ? "Signing in…" : <>Continue securely<ArrowRight size={17} /></>}</button>
           </form>
         </div>
-        <div className="login-note"><LockKeyhole size={14} /> Staff access is protected by short-lived sessions and optional MFA.</div>
       </section>
-      <aside className="login-showcase" aria-hidden="true">
-        <div className="login-showcase-copy">
-          <span>Safer Support</span>
-          <h2>Every conversation, with the customer already verified.</h2>
-        </div>
-        <div className="login-preview">
-          <div className="login-preview-head"><strong>Amelia W.</strong><span>Verified customer</span></div>
-          <p className="from-customer">Hi, my transfer from yesterday still shows pending.</p>
-          <p className="from-agent">Thanks Amelia, I can see it on our side. It clears within the hour and I’ll confirm here.</p>
-          <div className="login-preview-foot"><Check size={13} />Resolved in 4 minutes</div>
-        </div>
-      </aside>
     </main>
   );
 }
