@@ -14,10 +14,11 @@ import {
   EyeOff,
   Clock3,
   FileText,
+  Fingerprint,
   Inbox,
-  KeyRound,
   Layers,
   List,
+  Lock,
   LockKeyhole,
   LogOut,
   Mail,
@@ -28,6 +29,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Plus,
+  ScrollText,
   Search,
   ShieldCheck,
   UserPlus,
@@ -93,34 +95,40 @@ function Login({ onLogin }: { onLogin: (session: StaffSession) => void }) {
   return (
     <main className="login-page">
       <section className="login-brand-panel">
-        <div className="login-brand"><img src="/safer-logo.png" alt="Safer Logo" /><strong>SAFER</strong></div>
-        <div className="login-brand-copy">
-          <span className="login-eyebrow light">Support workspace</span>
-          <h1>Customer conversations, handled securely.</h1>
-          <p>Authorized Safer support staff only. Conversations come from verified customers in the Safer app and update in real time.</p>
+        <div className="login-topline">
+          <div className="login-brand"><img src="/safer-logo.png" alt="Safer Logo" /><strong>SAFER</strong></div>
+          <span className="login-status"><i />Staff only</span>
         </div>
-        <div className="login-security-note"><ShieldCheck size={20} /><div><strong>Protected support access</strong><span>Short-lived sessions with optional MFA</span></div></div>
+        <div className="login-brand-copy">
+          <h1>Customer support,<span>under control.</span></h1>
+          <p>Authorized Safer support staff only. Conversations come from verified customers and update in real time.</p>
+        </div>
+        <div className="login-highlights">
+          <div><Fingerprint size={22} /><strong>Secure sessions</strong><span>Short-lived, MFA ready</span></div>
+          <div><ShieldCheck size={22} /><strong>Verified customers</strong><span>From the Safer app</span></div>
+          <div><ScrollText size={22} /><strong>Live inbox</strong><span>Real-time updates</span></div>
+        </div>
       </section>
       <section className="login-form-panel">
         <div className="login-form-wrap">
           <div className="login-brand login-mobile-brand"><img src="/safer-logo.png" alt="Safer Logo" /><strong>SAFER</strong></div>
-          <div className="login-icon"><img src="/safer-logo.png" alt="Safer Logo" /></div>
           <span className="login-eyebrow">Support console</span>
-          <h2>Staff sign in</h2>
+          <h2>Sign in</h2>
           <p>Use your Safer support credentials to continue.</p>
           <form onSubmit={submit} className="login-form">
             <label className="login-field">Email address
-              <div className="login-input"><Mail size={17} /><input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@saference.com" /></div>
+              <div className="login-input"><Mail size={20} /><input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@saference.com" /></div>
             </label>
             <label className="login-field">Password
-              <div className="login-input"><KeyRound size={17} /><input type={showPassword ? "text" : "password"} autoComplete="current-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" className="login-reveal" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div>
+              <div className="login-input"><Lock size={20} /><input type={showPassword ? "text" : "password"} autoComplete="current-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••••" /><button type="button" className="login-reveal" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button></div>
             </label>
             {needsOtp && <label className="login-field">Authenticator code
-              <div className="login-input"><ShieldCheck size={17} /><input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="000000" /></div>
+              <div className="login-input"><ShieldCheck size={20} /><input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="000000" /></div>
             </label>}
             {error && <div className="login-error" role="alert">{error}</div>}
-            <button className="login-submit" disabled={busy}>{busy ? "Signing in…" : <>Continue securely<ArrowRight size={17} /></>}</button>
+            <button className="login-submit" disabled={busy}><span>{busy ? "Signing in…" : "Continue securely"}</span><i><ArrowRight size={20} /></i></button>
           </form>
+          <div className="login-footer"><span>Need access? Ask an administrator.</span><span><ShieldCheck size={16} />Secure session</span></div>
         </div>
       </section>
     </main>
