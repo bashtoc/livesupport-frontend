@@ -87,37 +87,36 @@ function Login({ onLogin }: { onLogin: (session: StaffSession) => void }) {
 
   return (
     <main className="login-page">
-      <div className="login-aurora" aria-hidden="true"><span /><span /><span /></div>
-      <section className="login-hero">
+      <section className="login-panel">
         <div className="login-brand">
           <span className="brand-icon"><img src="/safer-logo.png" alt="" /></span>
           <span>safer<em>.</em><small>SUPPORT</small></span>
         </div>
-        <h2>Every customer conversation, <span>in one calm place.</span></h2>
-        <p>A secure, real-time workspace for your support team.</p>
-        <ul className="login-features">
-          <li><span><MessageCircle size={16} /></span>Live conversations that update instantly</li>
-          <li><span><ShieldCheck size={16} /></span>Verified customer identities from the Safer app</li>
-          <li><span><LockKeyhole size={16} /></span>Short-lived sessions with optional MFA</li>
-        </ul>
-      </section>
-      <section className="login-card">
-        <div className="login-brand login-brand-compact">
-          <span className="brand-icon"><img src="/safer-logo.png" alt="" /></span>
-          <span>safer<em>.</em><small>SUPPORT</small></span>
+        <div className="login-card">
+          <h1>Sign in</h1>
+          <p>Use your Safer staff account to open the support workspace.</p>
+          <form onSubmit={submit}>
+            <label>Email address<input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@saference.com" /></label>
+            <label>Password<input type="password" autoComplete="current-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+            {needsOtp && <label>Authenticator code<input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="000000" /></label>}
+            {error && <div className="login-error" role="alert">{error}</div>}
+            <button className="primary-button full-width" disabled={busy}>{busy ? "Signing in…" : "Sign in"}<ArrowRight size={16} /></button>
+          </form>
         </div>
-        <span className="login-shield"><ShieldCheck size={24} /></span>
-        <h1>Welcome back</h1>
-        <p>Sign in to your secure support workspace.</p>
-        <form onSubmit={submit}>
-          <label>Email address<input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="support@saference.com" /></label>
-          <label>Password<input type="password" autoComplete="current-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••••••" /></label>
-          {needsOtp && <label>Authenticator code<input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="000000" /></label>}
-          {error && <div className="login-error" role="alert">{error}</div>}
-          <button className="primary-button full-width" disabled={busy}>{busy ? "Signing in…" : "Sign in"}<ArrowRight size={16} /></button>
-        </form>
         <div className="login-note"><LockKeyhole size={14} /> Staff access is protected by short-lived sessions and optional MFA.</div>
       </section>
+      <aside className="login-showcase" aria-hidden="true">
+        <div className="login-showcase-copy">
+          <span>Safer Support</span>
+          <h2>Every conversation, with the customer already verified.</h2>
+        </div>
+        <div className="login-preview">
+          <div className="login-preview-head"><strong>Amelia W.</strong><span>Verified customer</span></div>
+          <p className="from-customer">Hi, my transfer from yesterday still shows pending.</p>
+          <p className="from-agent">Thanks Amelia, I can see it on our side. It clears within the hour and I’ll confirm here.</p>
+          <div className="login-preview-foot"><Check size={13} />Resolved in 4 minutes</div>
+        </div>
+      </aside>
     </main>
   );
 }
