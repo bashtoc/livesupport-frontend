@@ -175,8 +175,8 @@ export default function App() {
 
   const notify = useCallback((message: string) => setToast(message), []);
 
-  const loadWorkspace = useCallback(async () => {
-    setLoading(true);
+  const loadWorkspace = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [conversationResult, replyResult, staffResult] = await Promise.allSettled([
         api.conversations(),
@@ -195,7 +195,7 @@ export default function App() {
       if (error instanceof ApiError && error.status === 401) setSession(null);
       else notify(errorMessage(error));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [notify, session]);
 
@@ -217,7 +217,8 @@ export default function App() {
     let disposed = false;
     let socket: Socket | null = null;
     let refreshingSocketToken = false;
-    const reload = () => void loadWorkspace();
+    let recovering = false;
+    const reload = () => void loadWorkspace(true);
     const onMessage = (raw: RawMessage) => {
       const message = mapMessage(raw);
       setConversations((items) => items.map((item) => {
@@ -253,6 +254,7 @@ export default function App() {
           refreshingSocketToken = false;
           joinedRef.current = "";
           joinSelected();
+          void loadWorkspace(true);
         });
         socket.on("disconnect", () => {
           joinedRef.current = "";
@@ -284,9 +286,48 @@ export default function App() {
         if (!disposed) notify(errorMessage(error));
       }
     };
+    const recover = async () => {
+      if (disposed || recovering || document.visibilityState === "hidden") return;
+      recovering = true;
+      try {
+        const token = await api.realtimeAccessToken();
+        if (disposed || !socket) return;
+        socket.auth = { token };
+        if (socket.connected) joinSelected();
+        else socket.connect();
+        const conversationId = selectedIdRef.current;
+        await Promise.allSettled([
+          loadWorkspace(true),
+          conversationId ? loadMessages(conversationId) : Promise.resolve(),
+        ]);
+      } catch (error) {
+        if (!disposed) notify(errorMessage(error));
+      } finally {
+        recovering = false;
+      }
+    };
+    const recoverWhenVisible = () => {
+      if (document.visibilityState === "visible") void recover();
+    };
+    const reconcileTimer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      const conversationId = selectedIdRef.current;
+      if (!socket?.connected) {
+        void recover();
+      } else if (conversationId) {
+        void loadMessages(conversationId);
+      }
+    }, 15_000);
+    window.addEventListener("focus", recoverWhenVisible);
+    window.addEventListener("online", recoverWhenVisible);
+    document.addEventListener("visibilitychange", recoverWhenVisible);
     void start();
     return () => {
       disposed = true;
+      window.clearInterval(reconcileTimer);
+      window.removeEventListener("focus", recoverWhenVisible);
+      window.removeEventListener("online", recoverWhenVisible);
+      document.removeEventListener("visibilitychange", recoverWhenVisible);
       socket?.removeAllListeners();
       socket?.disconnect();
       if (socketRef.current === socket) socketRef.current = null;
