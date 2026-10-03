@@ -137,6 +137,28 @@ attachmentRouter.post("/conversations/:conversationId/attachments/:attachmentId/
   res.status(202).json({ attachment: { id: attachmentId, status: "quarantined" } });
 });
 
+attachmentRouter.get("/conversations/:conversationId/attachments/:attachmentId", async (req, res) => {
+  const conversationId = uuid.parse(req.params.conversationId);
+  const attachmentId = uuid.parse(req.params.attachmentId);
+  await requireConversationAccess(conversationId, req.auth!);
+  const result = await db.query(
+    `select id, original_name, content_type, byte_size, status
+       from attachments where id = $1 and conversation_id = $2`,
+    [attachmentId, conversationId]
+  );
+  const attachment = result.rows[0];
+  if (!attachment) throw new AppError(404, "attachment_not_found", "Attachment not found");
+  res.json({
+    attachment: {
+      id: attachment.id,
+      fileName: attachment.original_name,
+      contentType: attachment.content_type,
+      byteSize: attachment.byte_size,
+      status: attachment.status
+    }
+  });
+});
+
 attachmentRouter.get("/conversations/:conversationId/attachments/:attachmentId/download", async (req, res) => {
   const conversationId = uuid.parse(req.params.conversationId);
   const attachmentId = uuid.parse(req.params.attachmentId);

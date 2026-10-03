@@ -53,7 +53,7 @@ const createConversationSchema = z.object({
   initialMessage: z.object({
     clientMessageId: z.string().min(8).max(128),
     body: z.string().trim().min(1).max(10_000)
-  })
+  }).optional()
 });
 
 conversationRouter.get("/customer/conversations", requireType("customer"), async (req, res) => {
@@ -76,13 +76,15 @@ conversationRouter.post("/customer/conversations", requireType("customer"), asyn
       [customer.id, input.subject]
     );
     const conversation = created.rows[0];
-    const message = await insertMessage(client, {
-      conversationId: conversation.id,
-      clientMessageId: input.initialMessage.clientMessageId,
-      body: input.initialMessage.body,
-      kind: "customer",
-      auth: customer
-    });
+    const message = input.initialMessage
+      ? await insertMessage(client, {
+          conversationId: conversation.id,
+          clientMessageId: input.initialMessage.clientMessageId,
+          body: input.initialMessage.body,
+          kind: "customer",
+          auth: customer
+        })
+      : null;
     await audit({
       actor: customer,
       action: "conversation.created",
@@ -91,7 +93,7 @@ conversationRouter.post("/customer/conversations", requireType("customer"), asyn
       requestId: String(req.id),
       ip: req.ip
     }, client);
-    return { conversation, message: message.message };
+    return { conversation, message: message?.message ?? null };
   });
   publishConversationEvent(result.conversation.id, result.conversation.team, "conversation:created", {
     conversation: serializeConversation(result.conversation)
